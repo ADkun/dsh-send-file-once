@@ -48,7 +48,7 @@ find_1time(){
   fi
   return 1
 }
-need_1time(){ find_1time || die "未找到 1time CLI。请先执行: npm install -g @1time/cli （需 Node >=20）"; }
+need_1time(){ find_1time || { EXIT_CODE=4; die "未找到 1time CLI。请先执行: npm install -g @1time/cli （需 Node >=20）"; }; }
 
 cmd_doctor(){
   echo "node   : $(node -v 2>/dev/null || echo '缺失（需 >=20）')"

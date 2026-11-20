@@ -11,27 +11,27 @@
     "examples/send-example.md": {
       "sha256": "71c436ad64f6ffa8b35e4d619689d03d38ac310f6f91372f5908e21fdae6677a",
       "bytes": 973,
-      "lines": 21
+      "lines": 20
     },
     "references/cli-reference.md": {
       "sha256": "40e67016a9e56a8208d4492fcd9ea799acc7ca6dd4338fe673f9a307a38d876e",
       "bytes": 2554,
-      "lines": 48
+      "lines": 47
     },
     "references/operations.md": {
       "sha256": "3dff21734b92a5ff87b5415213fa84371c8834313a2f4cc641d56226ddddaf4f",
       "bytes": 2707,
-      "lines": 40
+      "lines": 39
     },
     "scripts/otf.sh": {
-      "sha256": "f819134de6b383e10d362af644efbab47cb7fb8adb2d2a2847682079d4143acc",
-      "bytes": 8027,
-      "lines": 194
+      "sha256": "7863d22f0906b5706830013ad20ba9cfcb5fbb069cfb063d90d7331cd158143a",
+      "bytes": 8045,
+      "lines": 193
     },
     "SKILL.md": {
-      "sha256": "3b6b1c3ef7c42e8355480fcacc8d6bb28199e17953d9f4a577659316ab465895",
-      "bytes": 5220,
-      "lines": 54
+      "sha256": "3954dba08a416a01b6e73e6aaf9560aa97cfb1f8f8be17bb6e2475dafa2b7046",
+      "bytes": 4995,
+      "lines": 53
     }
   }
 }
