@@ -1,0 +1,37 @@
+{
+  "name": "send-file-once",
+  "version": "1.0.0",
+  "created": "2026-02-07",
+  "changelog": {
+    "1.0.0": "初版：封装 1time CLI 的一次性文件/文本快传执行器（send/read/doctor，含口令、限次、限时）"
+  },
+  "source": "local: D:/dsh/plugins/dsh-send-file-once",
+  "entry": "./SKILL.md",
+  "files": {
+    "examples/send-example.md": {
+      "sha256": "71c436ad64f6ffa8b35e4d619689d03d38ac310f6f91372f5908e21fdae6677a",
+      "bytes": 973,
+      "lines": 21
+    },
+    "references/cli-reference.md": {
+      "sha256": "40e67016a9e56a8208d4492fcd9ea799acc7ca6dd4338fe673f9a307a38d876e",
+      "bytes": 2554,
+      "lines": 48
+    },
+    "references/operations.md": {
+      "sha256": "3dff21734b92a5ff87b5415213fa84371c8834313a2f4cc641d56226ddddaf4f",
+      "bytes": 2707,
+      "lines": 40
+    },
+    "scripts/otf.sh": {
+      "sha256": "f819134de6b383e10d362af644efbab47cb7fb8adb2d2a2847682079d4143acc",
+      "bytes": 8027,
+      "lines": 194
+    },
+    "SKILL.md": {
+      "sha256": "3b6b1c3ef7c42e8355480fcacc8d6bb28199e17953d9f4a577659316ab465895",
+      "bytes": 5220,
+      "lines": 54
+    }
+  }
+}
