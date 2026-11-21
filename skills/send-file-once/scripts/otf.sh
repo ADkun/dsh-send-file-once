@@ -87,8 +87,10 @@ cmd_send(){
   [ -n "$file" ] || [ "$have_text" = 1 ] || die "需要 --file <路径> 或 --text <内容>"
   [ -n "$file" ] && [ "$have_text" = 1 ] && die "--file 与 --text 只能二选一"
   [ "$have_text" = 1 ] && [ -n "$pass" ] && die "--text 不支持 --passphrase：文本接口没有口令参数，极敏文本请先加密成文件再发"
-  case "$maxmb" in ''|*[!0-9]*) die "--max-mb 需为正整数（MiB）: $maxmb";; esac
-  maxmb=$(( 10#$maxmb )); [ "$maxmb" -ge 1 ] && [ "$maxmb" -le 10240 ] || die "--max-mb 需为 1–10240 的整数（MiB）: $maxmb"
+  case "$maxmb" in ''|*[!0-9]*) die "--max-mb 需为 1–10240 的整数（MiB）: $maxmb";; esac
+  [ "${#maxmb}" -le 5 ] || die "--max-mb 需为 1–10240 的整数（MiB）: $maxmb"
+  maxmb=$(( 10#$maxmb ))
+  [ "$maxmb" -ge 1 ] && [ "$maxmb" -le 10240 ] || die "--max-mb 需为 1–10240 的整数（MiB）: $maxmb"
   case "$views" in ''|*[!0-9]*) die "--views 需为 1–10 的整数: $views";; esac
   views=$(( 10#$views )); [ "$views" -ge 1 ] && [ "$views" -le 10 ] || die "--views 需为 1–10 的整数: $views"
   check_expires "$expires"
@@ -127,7 +129,8 @@ cmd_send(){
   fi
 
   local url
-  url=$(printf '%s' "$out" | tr -d '\r' | grep -oE 'https?://[^[:space:]]+' | tail -n1)
+  url=$(printf '%s' "$out" | tr -d '\r' | grep -oE 'https?://[^[:space:]]+/[fv]/#[A-Za-z0-9_=-]+' | head -n1)
+  [ -n "$url" ] || url=$(printf '%s' "$out" | tr -d '\r' | grep -oE 'https?://[^[:space:]]+' | head -n1)
   if [ -z "$url" ]; then EXIT_CODE=3; die "未能解析出链接：1time 报成功但输出里没有 URL（重试一次，仍失败先 doctor）"; fi
 
   if [ "$json" = 1 ]; then
@@ -172,7 +175,7 @@ cmd_read(){
     if [ "$rc" -ne 0 ]; then cat "$errf" >&2; rm -f "$errf"; EXIT_CODE=3; die "读取失败"; fi
     err=$(cat "$errf" 2>/dev/null); rm -f "$errf"
     if [ "$json" = 1 ]; then
-      OTF_TEXT="$out" RECEIPT="$err" node -e 'const e=process.env;process.stdout.write(JSON.stringify({ok:true,kind:"text",text:e.OTF_TEXT,receipt:e.RECEIPT})+"\n")'
+      printf '%s' "$out" | RECEIPT="$err" node -e 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",d=>{s+=d});process.stdin.on("end",()=>{process.stdout.write(JSON.stringify({ok:true,kind:"text",text:s,receipt:process.env.RECEIPT})+"\n")})'
     else
       printf '%s\n' "$out"
       if [ -n "$err" ]; then echo "$err" >&2; fi
@@ -195,6 +198,10 @@ cmd_read(){
     fi
     if [ "$rc" -ne 0 ]; then cat "$errf" >&2; rm -f "$errf"; EXIT_CODE=3; if [ -n "$created_dir" ]; then rm -rf -- "$created_dir" 2>/dev/null; fi; die "读取失败"; fi
     err=$(cat "$errf" 2>/dev/null); rm -f "$errf"
+    if [ -n "$outpath" ] && [ ! -f "$(to_posix "$outpath")" ]; then
+      if [ -n "$created_dir" ]; then rm -rf -- "$created_dir" 2>/dev/null; fi
+      EXIT_CODE=3; die "1time 报成功但文件不存在: $outpath"
+    fi
     if [ "$json" = 1 ]; then
       OTF_OUT="${outpath:-$(printf '%s' "$out" | tr -d '\r' | tail -n1)}" RECEIPT="$err" node -e 'const e=process.env;process.stdout.write(JSON.stringify({ok:true,kind:"file",out:e.OTF_OUT,receipt:e.RECEIPT})+"\n")'
     else

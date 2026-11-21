@@ -9,6 +9,7 @@
 2. 判断：文件；次数 = 1（用户明确「一次」）；有效期 = 1d（「明天前」）；敏感 = 是 → 建议加口令。
 3. 发送（后台任务；口令另发）：
    bash scripts/otf.sh send --file "C:/Users/me/Desktop/backup-codes.txt" --expires 1d --views 1 --passphrase <口令>
+   （口令会留在本地 argv / shell 历史里，只用于留痕可接受的场景）
 4. 任务结束后读回任务输出，取其中的链接。
 5. 交付链接、有效期、次数、口令情况。
 

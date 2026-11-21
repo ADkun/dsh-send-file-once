@@ -31,9 +31,9 @@
 
 ## 本技能封装（scripts/otf.sh）相对原始 CLI 的增益
 - 发送前校验文件存在与大小上限（默认 250MiB，`--max-mb` 可在 1–10240 间调），超限直接报错不发。
-- 规范输出：人类可读块，或 `--json` 单行 JSON——send 出 ok / url / kind / path / bytes / expires / views / passphrase / receipt，read 出 ok / kind / text|out / receipt。read 的 `out` 恒为实际落盘路径：给了 `--out` 就是它，没给则取 1time 回报的路径。
+- 规范输出：人类可读块，或 `--json` 单行 JSON——send 出 ok / url / kind / path / bytes / expires / views / passphrase / receipt，read 出 ok / kind / text|out / receipt。read 的 `out` 恒为实际落盘路径：给了 `--out` 就是它，没给则取 1time 回报的路径。`path` / `out` 是路径原文，Git Bash/MSYS 下可能写成 `D:/...` 形式，据它定位文件前按需转换。`--json` 只用于成功态：失败一律不出 JSON（stderr 一行 + 非 0 退出码），机读调用方要连退出码一起判。
 - 口令经 `env "1TIME_PASSPHRASE=…"` 交给 1time：1time 的 argv 不含口令。`1TIME_PASSPHRASE` 以数字开头，bash 无法用 `VAR=… cmd` 前缀赋值，故只能借 `env`（口令在该进程 argv 里只存续到 exec 1time 为止）。
-- `read --out` 自动创建父目录；读取失败会把这一次新建的目录回滚掉，不留空目录。
+- `read --out` 自动创建父目录；读取失败会把这一次新建的目录回滚掉，不留空目录。读取成功后还会核对文件确实落了盘——1time 报成功却没写文件时按 3 退出，不报假 OK。
 - `doctor` 自检依赖。
 
 ## 退出码（otf.sh）

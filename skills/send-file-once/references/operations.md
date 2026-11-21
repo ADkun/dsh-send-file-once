@@ -31,6 +31,8 @@
 | 3 / 读取失败 | 链接过期 / 次数用尽 / 口令错 | 向发送方确认；口令链接须带正确口令 |
 | 3 / 读取失败：Output file already exists | `--out` 指向已存在的文件 | 换一个新路径；确需覆盖先自行移走旧文件 |
 | 首读回执 `This link is now consumed and has been deleted from the server.`；再读 `This file has already been downloaded or has expired.` | 链接已被用掉（或已到期） | 正常「阅后即焚」行为；要再发就重新生成链接 |
+| 3 / 文本链接回执 `This message has already been read or has expired.` | 文本链接已看尽或已到期 | 同「阅后即焚」；重新生成 |
+| 3 / `This file link requires the correct passphrase. Provide it via --passphrase or 1TIME_PASSPHRASE.` | 口令不对 | 向发送方确认口令来源；重试不消耗次数 |
 
 ## 四、安全模型（必读）
 - 端到端加密：内容在本地加密后才上传，服务器只见密文与读令牌的 SHA-256 哈希，读不到明文。
