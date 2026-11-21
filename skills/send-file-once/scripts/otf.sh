@@ -33,6 +33,7 @@ EOF
 }
 
 die(){ echo "otf: $*" >&2; exit "$EXIT_CODE"; }
+need_val(){ [ $# -ge 2 ] && [ -n "$2" ] || die "$1 缺少取值"; }
 to_win(){ if command -v cygpath >/dev/null 2>&1; then cygpath -w -- "$1"; else printf '%s' "$1"; fi; }
 to_posix(){ if command -v cygpath >/dev/null 2>&1; then cygpath -u -- "$1"; else printf '%s' "$1"; fi; }
 
@@ -65,23 +66,26 @@ cmd_doctor(){
 cmd_send(){
   local file="" text="" have_text=0 expires="1d" views="1" pass="" host="" json=0 maxmb="$DEFAULT_MAX_MB"
   while [ $# -gt 0 ]; do case "$1" in
-    --file)               file="$2"; shift 2;;
-    --text)               text="$2"; have_text=1; shift 2;;
-    --expires)            expires="$2"; shift 2;;
-    --views)              views="$2"; shift 2;;
-    --passphrase|--pass)  pass="$2"; shift 2;;
-    --host)               host="$2"; shift 2;;
-    --max-mb)             maxmb="$2"; shift 2;;
+    --file)               need_val "$@"; file="$2"; shift 2;;
+    --text)               need_val "$@"; text="$2"; have_text=1; shift 2;;
+    --expires)            need_val "$@"; expires="$2"; shift 2;;
+    --views)              need_val "$@"; views="$2"; shift 2;;
+    --passphrase|--pass)  need_val "$@"; pass="$2"; shift 2;;
+    --host)               need_val "$@"; host="$2"; shift 2;;
+    --max-mb)             need_val "$@"; maxmb="$2"; shift 2;;
     --json)               json=1; shift;;
     -h|--help)            usage; exit 0;;
     *) die "未知参数: $1";;
   esac; done
+  [ -n "$file" ] && [ "$have_text" = 1 ] && die "--file 与 --text 只能二选一"
+  case "$maxmb" in ''|*[!0-9]*) die "--max-mb 需为正整数（MiB）: $maxmb";; esac
   need_1time
 
   set -- --expires-in "$expires" --views "$views"
   if [ -n "$host" ]; then set -- --host "$host" "$@"; fi
 
-  local out="" errf="/tmp/.otf_err_$$" kind="" display="" bytes="" rc=0 err=""
+  local out="" errf kind="" display="" bytes="" rc=0 err=""
+  errf=$(mktemp "${TMPDIR:-/tmp}/otf-err.XXXXXXXX" 2>/dev/null) || errf="${TMPDIR:-/tmp}/.otf_err_$$"
   if [ -n "$file" ] && [ "$have_text" = 0 ]; then
     local posix win size maxbytes sizemb
     posix="$(to_posix "$file")"; win="$(to_win "$file")"
@@ -103,7 +107,7 @@ cmd_send(){
   elif [ "$have_text" = 1 ]; then
     local chars
     chars=$(printf '%s' "$text" | wc -c | tr -d ' ')
-    kind="text"; display="机密文本($chars字符)"; bytes=0
+    kind="text"; display="机密文本($chars 字节)"; bytes=0
     out=$(printf '%s' "$text" | "$ONETIME" send "$@" 2>"$errf"); rc=$?
     if [ "$rc" -ne 0 ]; then cat "$errf" >&2; rm -f "$errf"; EXIT_CODE=3; die "上传失败"; fi
     err=$(cat "$errf" 2>/dev/null); rm -f "$errf"
@@ -133,9 +137,9 @@ cmd_send(){
 cmd_read(){
   local link="" outpath="" pass="" host="" json=0
   while [ $# -gt 0 ]; do case "$1" in
-    --out)                outpath="$2"; shift 2;;
-    --passphrase|--pass)  pass="$2"; shift 2;;
-    --host)               host="$2"; shift 2;;
+    --out)                need_val "$@"; outpath="$2"; shift 2;;
+    --passphrase|--pass)  need_val "$@"; pass="$2"; shift 2;;
+    --host)               need_val "$@"; host="$2"; shift 2;;
     --json)               json=1; shift;;
     -h|--help)            usage; exit 0;;
     http://*|https://*)   link="$1"; shift;;
@@ -147,7 +151,8 @@ cmd_read(){
   set --
   if [ -n "$host" ]; then set -- --host "$host"; fi
 
-  local errf="/tmp/.otf_err_$$" out="" err="" rc=0 istext=0
+  local errf out="" err="" rc=0 istext=0
+  errf=$(mktemp "${TMPDIR:-/tmp}/otf-err.XXXXXXXX" 2>/dev/null) || errf="${TMPDIR:-/tmp}/.otf_err_$$"
   case "$link" in *"/v/"*) istext=1;; esac
 
   if [ "$istext" = 1 ]; then

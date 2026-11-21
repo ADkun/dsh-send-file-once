@@ -1,0 +1,2 @@
+# 统一按 LF 存取：otf.sh 若以 CRLF 检出会直接跑不起来，MANIFEST.json 里的 sha256 也是按 LF 算的
+* text=auto eol=lf

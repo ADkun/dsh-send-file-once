@@ -27,12 +27,12 @@
 - send / send-file 的**链接只打到 stdout**；read / read-file 的「剩余次数 / 已销毁」回执打到 stderr，所以 stdout 始终可管道。
 - read-file 不给 --out 时，存到**当前目录、用原文件名**（本技能建议总是显式 --out，便于定位）。
 - 文本链接形如 `https://1time.io/v/#...`；文件链接形如 `https://1time.io/f/#...`（本技能按 /f/ 与 /v/ 区分）。
-- 口令也可用环境变量 `1TIME_PASSPHRASE` 传入（本技能即用此法，避免口令进入 argv）。
+- 口令也可用环境变量 `1TIME_PASSPHRASE` 传入；本技能即用此法，使 1time 的 argv 里没有口令（`--passphrase` 会触发 1time 的 argv 泄露告警）。
 
 ## 本技能封装（scripts/otf.sh）相对原始 CLI 的增益
 - 发送前校验文件存在与大小上限（默认 250MiB，`--max-mb` 可调），超限直接报错不发。
 - 规范输出：人类可读块，或 `--json` 单行 JSON（ok / url / kind / path / bytes / expires / views / passphrase）。
-- 口令经 `env 1TIME_PASSPHRASE` 交给 1time，不进 argv。
+- 口令经 `env "1TIME_PASSPHRASE=…"` 交给 1time：1time 的 argv 不含口令。`1TIME_PASSPHRASE` 以数字开头，bash 无法用 `VAR=… cmd` 前缀赋值，故只能借 `env`（口令在该进程 argv 里只存续到 exec 1time 为止）。
 - `read --out` 自动创建父目录。
 - `doctor` 自检依赖。
 
