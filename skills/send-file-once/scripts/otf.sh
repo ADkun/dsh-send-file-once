@@ -34,6 +34,15 @@ EOF
 
 die(){ echo "otf: $*" >&2; exit "$EXIT_CODE"; }
 need_val(){ [ $# -ge 2 ] && [ -n "$2" ] || die "$1 缺少取值"; }
+check_expires(){
+  case "$1" in *[!0-9dh]*) die "--expires 形如 1h / 2d / 2d23h: $1";; esac
+  local d=0 h=0 t
+  case "$1" in *d*) d="${1%%d*}"; h="${1#*d}"; h="${h%h}";; *) h="${1%h}";; esac
+  [ -n "$d" ] || d=0; [ -n "$h" ] || h=0
+  case "$d$h" in *[!0-9]*) die "--expires 形如 1h / 2d / 2d23h: $1";; esac
+  t=$(( 10#$d * 24 + 10#$h ))
+  [ "$t" -ge 1 ] && [ "$t" -le 720 ] || die "--expires 超出 1h–30d: $1"
+}
 to_win(){ if command -v cygpath >/dev/null 2>&1; then cygpath -w -- "$1"; else printf '%s' "$1"; fi; }
 to_posix(){ if command -v cygpath >/dev/null 2>&1; then cygpath -u -- "$1"; else printf '%s' "$1"; fi; }
 
@@ -78,7 +87,12 @@ cmd_send(){
     *) die "未知参数: $1";;
   esac; done
   [ -n "$file" ] && [ "$have_text" = 1 ] && die "--file 与 --text 只能二选一"
+  [ "$have_text" = 1 ] && [ -n "$pass" ] && die "--text 不支持 --passphrase：文本接口没有口令参数，极敏文本请先加密成文件再发"
   case "$maxmb" in ''|*[!0-9]*) die "--max-mb 需为正整数（MiB）: $maxmb";; esac
+  maxmb=$(( 10#$maxmb )); [ "$maxmb" -ge 1 ] || die "--max-mb 需为正整数（MiB）: $maxmb"
+  case "$views" in ''|*[!0-9]*) die "--views 需为 1–10 的整数: $views";; esac
+  views=$(( 10#$views )); [ "$views" -ge 1 ] && [ "$views" -le 10 ] || die "--views 需为 1–10 的整数: $views"
+  check_expires "$expires"
   need_1time
 
   set -- --expires-in "$expires" --views "$views"
@@ -89,12 +103,12 @@ cmd_send(){
   if [ -n "$file" ] && [ "$have_text" = 0 ]; then
     local posix win size maxbytes sizemb
     posix="$(to_posix "$file")"; win="$(to_win "$file")"
-    [ -f "$posix" ] || die "文件不存在: $file"
+    [ -f "$posix" ] || { rm -f "$errf"; die "文件不存在: $file"; }
     size=$(wc -c < "$posix" | tr -d ' ')
     maxbytes=$(( maxmb * 1024 * 1024 ))
     if [ "$size" -gt "$maxbytes" ]; then
       sizemb=$(( size / 1024 / 1024 ))
-      die "文件约 $sizemb MiB 超过上限 $maxmb MiB，请分卷或改用其他方案"
+      rm -f "$errf"; die "文件约 $sizemb MiB 超过上限 $maxmb MiB，请分卷或改用其他方案"
     fi
     kind="file"; bytes="$size"; display="$file"
     if [ -n "$pass" ]; then
@@ -130,7 +144,7 @@ cmd_send(){
     echo "类型: $kind  $display"
     echo "有效期: $expires   可用次数: $views   口令: $p"
     echo "!! 链接 # 之后即解密钥匙，链接本身=钥匙；到期或次数用尽即自动作废，请只发给目标接收人。"
-    [ -n "$err" ] && echo "回执: $err"
+    if [ -n "$err" ]; then echo "回执: $err"; fi
   fi
 }
 
@@ -163,7 +177,7 @@ cmd_read(){
       OTF_TEXT="$out" RECEIPT="$err" node -e 'const e=process.env;process.stdout.write(JSON.stringify({ok:true,kind:"text",text:e.OTF_TEXT,receipt:e.RECEIPT})+"\n")'
     else
       printf '%s\n' "$out"
-      [ -n "$err" ] && echo "$err" >&2
+      if [ -n "$err" ]; then echo "$err" >&2; fi
     fi
   else
     if [ -n "$outpath" ]; then
@@ -183,7 +197,7 @@ cmd_read(){
       echo "OK 已解密下载"
       [ -n "$outpath" ] && echo "保存到: $outpath"
       [ -n "$out" ] && echo "$out"
-      [ -n "$err" ] && echo "$err" >&2
+      if [ -n "$err" ]; then echo "$err" >&2; fi
     fi
   fi
 }

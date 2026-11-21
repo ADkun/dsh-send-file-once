@@ -1,9 +1,10 @@
 {
   "name": "send-file-once",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "created": "2026-02-07",
   "changelog": {
     "1.1.0": "发送改为后台任务执行（非交互，结束后读回输出取链接）；更正 --text/--passphrase 的 argv 留痕表述；脚本补参数缺值/二选一/--max-mb 校验与 mktemp 临时文件",
+    "1.1.1": "修成功路径误报退出码 1；--text 配口令改为报错（原会静默丢弃口令却报“口令: 有”）；--views/--expires 本地校验；临时文件不再残留；自证与 --out 语义按实测更正",
     "1.0.0": "初版：封装 1time CLI 的一次性文件/文本快传执行器（send/read/doctor，含口令、限次、限时）"
   },
   "source": "local: D:/dsh/plugins/dsh-send-file-once",
@@ -15,23 +16,23 @@
       "lines": 21
     },
     "references/cli-reference.md": {
-      "sha256": "8f2ad5fba69e9a5cfe20115067417e84ec3fe400362b6fed03c081f70c19ba2e",
-      "bytes": 2807,
+      "sha256": "cba762489a111dafd5e2b50a5feac974584d01717c12de6258f77de6aa62fc94",
+      "bytes": 3084,
       "lines": 47
     },
     "references/operations.md": {
-      "sha256": "6a8e126bb0987d945eca42c2d9bb0828a1a513b9435449d96e80d8032a7193bb",
-      "bytes": 2828,
-      "lines": 39
+      "sha256": "6a60d6e7b231f55f3a6c1dd69c261b59b1da35386adf3edf1d5364c8f4aa7238",
+      "bytes": 2973,
+      "lines": 40
     },
     "scripts/otf.sh": {
-      "sha256": "baf09c9a634268fa5bfd6f2e12ee6e6d3b93eaab2ee25d110f9b6ddb4d10a038",
-      "bytes": 8601,
-      "lines": 198
+      "sha256": "c45f43a4e906bb1f2df10feb5e188dc390b3f89cdc2f1c446c487838451cfd7a",
+      "bytes": 9565,
+      "lines": 212
     },
     "SKILL.md": {
-      "sha256": "1e25da4e6b94c32bc9d832a1b3467fb9e3c06aafeb797b3573d07d58c12d14d0",
-      "bytes": 5482,
+      "sha256": "ad7930cab41cccfc72f208476b9fc6043814700036adf8397cf11f40f09647fb",
+      "bytes": 5726,
       "lines": 54
     }
   }

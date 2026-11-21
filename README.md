@@ -49,7 +49,7 @@ bash scripts/otf.sh doctor
 | --expires | send | 1d | 1h–30d，可写 2d / 23h / 2d23h |
 | --views | send | 1 | 1–10 次（文件=下载次数，文本=查看次数） |
 | --passphrase | send --file / read | 无 | 仅文件支持；口令另走通道 |
-| --out | read | 当前目录原文件名 | 保存路径 |
+| --out | read | 当前目录原文件名 | 保存路径；已存在则拒绝，未给时重名自动加 (1) |
 | --host | 全部 | 1time.io | 自建实例，http 仅回环 |
 | --max-mb | send --file | 250 | 单文件软上限 MiB，超出拒绝 |
 | --json | send / read | 关 | 输出单行 JSON |
