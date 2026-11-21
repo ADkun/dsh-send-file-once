@@ -1,8 +1,9 @@
 {
   "name": "send-file-once",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "created": "2026-02-07",
   "changelog": {
+    "1.1.5": "read --json 的 out 与 send --json 的 path 也改走 stdin（此前经 OTF_* 环境变量，绝对 POSIX 路径会被 MSYS 改写成 D:/ 形式）；read 不给 --out 时同样核对 1time 报出的路径确实落盘，没报出路径或文件不存在按 3 退出（此前静默 rc=0）；通用 URL 回退要求候选唯一，多条时按 3 拒绝交付；--max-mb 先剥前导零再判长，000001 / 010240 不再被误拒；文档：--text 尾随换行被裁与 NUL 丢失、--json 下判成功看 ok 判剩余看 receipt、http 回环含 localhost 与 ::1、consumed 回执仅在 --views 1 时出现、「被 1time 本地校验拒绝」更正为 otf.sh 本地拦下、红线改为「可能已传完，也可能传一半断了」、多条 URL 的失败处置",
     "1.1.4": "read --json 的文本内容改走 stdin（此前经环境变量传递，Git Bash/MSYS 会把形似 POSIX 路径的文本改写成 Windows 路径，rc=0 却返回错误内容）；链接解析优先认 /f/#… /v/#… 形态且取第一个、剥掉尾部标点，1time 或代理多打一行含 URL 的提示时不再交付错链接；read 成功后核对文件确实落盘，1time 谎报成功按 3 退出并回滚新建目录；--max-mb 超长值报错回显原串（不再回显整数回绕后的数）；文档：补文本链接用完与口令错的 stderr 原文、--json 只在成功态、路径字段原样语义、doctor 输出形态不再要求字面匹配、红线改为如实描述「没读到链接」的后果",
     "1.1.3": "链接解析只认 URL：1time 多打一行提示不再被误判成失败，解析失败归 3 而非 2，且不再把含链接的原始输出回显进 stderr；无子命令退出码改 2；send 回执与 read 一致走 stderr，send --json 补 receipt；read --json 不给 --out 时 out 回落到 1time 报的路径；read --out 失败回滚本次新建的目录；--max-mb 上限 10240 防整数溢出；文档同步：退出码表、consumed 原文、后台任务的 harness 形态与「禁止前台同步等待」红线、大小上限只认脚本上限",
     "1.1.2": "收紧 --expires 校验至与 1time 同一正则（此前 10、1dh 会漏到服务端才失败）；无 --file/--text 时在建临时文件之前就报错，且报 2 而非缺 1time 的 4；read 缺链接同样先报参数错；文本链接忽略 --out/--passphrase 时在 stderr 出声；README 的单文件大小口径与 SKILL/operations 对齐",
@@ -19,23 +20,23 @@
       "lines": 22
     },
     "references/cli-reference.md": {
-      "sha256": "f23979ba4542dd94585c6ddd5b5ce6bca41a48f717c0119a025178b10b07e563",
-      "bytes": 3893,
-      "lines": 47
+      "sha256": "47c5743da8afea66433faa8d8848ee2f326991fbe83c1e7a48001da5447a44c2",
+      "bytes": 4430,
+      "lines": 48
     },
     "references/operations.md": {
-      "sha256": "480b5d572e974f01fc458d5d2545ed8c3c88176a8e2d6ae7c6f45e8ec22372d8",
-      "bytes": 3524,
+      "sha256": "f4e57cf93c0844e0d2468fbdc1993d7549bb2a367f7a1ef95b42a790aa106b82",
+      "bytes": 3734,
       "lines": 42
     },
     "scripts/otf.sh": {
-      "sha256": "8db2468585218ffe3178bc2d6bc8e68414ea156ddf745c51b28037392ec31420",
-      "bytes": 10813,
-      "lines": 222
+      "sha256": "51e9085c7aa189b6b06ee0957de1a12a1d8e40cc8ae7d1177cf995c5ddff79d8",
+      "bytes": 11665,
+      "lines": 233
     },
     "SKILL.md": {
-      "sha256": "34af7be11de4902d581c2e3f3eee7bc93fb3944b2d97b24b67c5738d6f084aba",
-      "bytes": 6416,
+      "sha256": "d89030256f2c07a3b0c6b432986b32f088d3e9af8769a16f15c49f696e2865a5",
+      "bytes": 6470,
       "lines": 55
     }
   }

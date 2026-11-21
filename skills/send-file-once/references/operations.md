@@ -16,7 +16,7 @@
 
 ## 二、限额与硬约束
 - 单文件 ≤ 250 MiB（本技能软上限默认 250MiB，超限直接拒绝）。
-- 有效期 1h–30d；次数 1–10；超范围会被 1time 本地校验拒绝。
+- 有效期 1h–30d；次数 1–10；超范围、形态不对由 otf.sh 本地拦下（exit 2），1time 客户端侧未做范围校验。
 - 公共实例有速率限制，别短时间连发；失败先 `doctor`。
 - 需 Node ≥ 20 且已 `npm install -g @1time/cli`。
 
@@ -26,11 +26,11 @@
 | 4 / 未找到 1time | 未安装或不在 PATH | npm install -g @1time/cli，再 doctor |
 | 2 / 文件不存在 | 路径错 | 核对路径（含空格要加引号） |
 | 2 / 超过上限 | 文件 >250MiB | 分卷 / 压缩 / 换方案，并告知用户 |
-| 3 / 未能解析出链接 | 1time 报成功但输出里没有 URL（代理改写输出、非官方 build） | 重试一次；仍失败先 doctor，别连刷 |
+| 3 / 未能解析出唯一链接 | 1time 报成功，但输出里没有 `/f/#` 或 `/v/#` 形态的链接，或者有多条 URL（代理改写输出、非官方 build） | 重试一次；仍失败先 doctor，别连刷 |
 | 3 / 上传失败 | 网络、限流、服务端拒绝 | 读 stderr 原文；限流则降频；仍失败改期再试 |
 | 3 / 读取失败 | 链接过期 / 次数用尽 / 口令错 | 向发送方确认；口令链接须带正确口令 |
 | 3 / 读取失败：Output file already exists | `--out` 指向已存在的文件 | 换一个新路径；确需覆盖先自行移走旧文件 |
-| 首读回执 `This link is now consumed and has been deleted from the server.`；再读 `This file has already been downloaded or has expired.` | 链接已被用掉（或已到期） | 正常「阅后即焚」行为；要再发就重新生成链接 |
+| 首读回执 `This link is now consumed and has been deleted from the server.`（仅 `--views 1`；`--views ≥ 2` 时首读是 `This link has N downloads remaining.`）；再读 `This file has already been downloaded or has expired.` | 链接已被用掉（或已到期） | 正常「阅后即焚」行为；要再发就重新生成链接 |
 | 3 / 文本链接回执 `This message has already been read or has expired.` | 文本链接已看尽或已到期 | 同「阅后即焚」；重新生成 |
 | 3 / `This file link requires the correct passphrase. Provide it via --passphrase or 1TIME_PASSPHRASE.` | 口令不对 | 向发送方确认口令来源；重试不消耗次数 |
 

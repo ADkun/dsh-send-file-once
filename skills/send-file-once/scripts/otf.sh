@@ -71,7 +71,7 @@ cmd_doctor(){
 }
 
 cmd_send(){
-  local file="" text="" have_text=0 expires="1d" views="1" pass="" host="" json=0 maxmb="$DEFAULT_MAX_MB"
+  local file="" text="" have_text=0 expires="1d" views="1" pass="" host="" json=0 maxmb="$DEFAULT_MAX_MB" rawmax="" cands="" ncand=""
   while [ $# -gt 0 ]; do case "$1" in
     --file)               need_val "$@"; file="$2"; shift 2;;
     --text)               need_val "$@"; text="$2"; have_text=1; shift 2;;
@@ -88,9 +88,10 @@ cmd_send(){
   [ -n "$file" ] && [ "$have_text" = 1 ] && die "--file 与 --text 只能二选一"
   [ "$have_text" = 1 ] && [ -n "$pass" ] && die "--text 不支持 --passphrase：文本接口没有口令参数，极敏文本请先加密成文件再发"
   case "$maxmb" in ''|*[!0-9]*) die "--max-mb 需为 1–10240 的整数（MiB）: $maxmb";; esac
-  [ "${#maxmb}" -le 5 ] || die "--max-mb 需为 1–10240 的整数（MiB）: $maxmb"
+  rawmax="$maxmb"; maxmb="${maxmb#"${maxmb%%[!0]*}"}"
+  { [ -n "$maxmb" ] && [ "${#maxmb}" -le 5 ]; } || die "--max-mb 需为 1–10240 的整数（MiB）: $rawmax"
   maxmb=$(( 10#$maxmb ))
-  [ "$maxmb" -ge 1 ] && [ "$maxmb" -le 10240 ] || die "--max-mb 需为 1–10240 的整数（MiB）: $maxmb"
+  [ "$maxmb" -ge 1 ] && [ "$maxmb" -le 10240 ] || die "--max-mb 需为 1–10240 的整数（MiB）: $rawmax"
   case "$views" in ''|*[!0-9]*) die "--views 需为 1–10 的整数: $views";; esac
   views=$(( 10#$views )); [ "$views" -ge 1 ] && [ "$views" -le 10 ] || die "--views 需为 1–10 的整数: $views"
   check_expires "$expires"
@@ -130,13 +131,17 @@ cmd_send(){
 
   local url
   url=$(printf '%s' "$out" | tr -d '\r' | grep -oE 'https?://[^[:space:]]+/[fv]/#[A-Za-z0-9_=-]+' | head -n1)
-  [ -n "$url" ] || url=$(printf '%s' "$out" | tr -d '\r' | grep -oE 'https?://[^[:space:]]+' | head -n1)
-  if [ -z "$url" ]; then EXIT_CODE=3; die "未能解析出链接：1time 报成功但输出里没有 URL（重试一次，仍失败先 doctor）"; fi
+  if [ -z "$url" ]; then
+    cands=$(printf '%s' "$out" | tr -d '\r' | grep -oE 'https?://[^[:space:]]+' || true)
+    ncand=$(printf '%s\n' "$cands" | grep -c . || true)
+    [ "$ncand" = 1 ] && url="$cands"
+  fi
+  if [ -z "$url" ]; then EXIT_CODE=3; die "未能解析出唯一链接：1time 报成功但输出里没有 /f/# 或 /v/# 形态的链接，或有多条 URL（重试一次，仍失败先 doctor）"; fi
 
   if [ "$json" = 1 ]; then
     local passflag=0; [ -n "$pass" ] && passflag=1
-    OTF_URL="$url" OTF_KIND="$kind" OTF_PATH="$display" OTF_BYTES="$bytes" OTF_EXP="$expires" OTF_VIEWS="$views" OTF_PASS="$passflag" OTF_RECEIPT="$err" \
-    node -e 'const e=process.env;process.stdout.write(JSON.stringify({ok:true,url:e.OTF_URL,kind:e.OTF_KIND,path:e.OTF_PATH,bytes:Number(e.OTF_BYTES)||0,expires:e.OTF_EXP,views:Number(e.OTF_VIEWS),passphrase:e.OTF_PASS==="1",receipt:e.OTF_RECEIPT})+"\n")'
+    { printf '%s\n%s\n' "$url" "$display"; printf '%s' "$err"; } | OTF_KIND="$kind" OTF_BYTES="$bytes" OTF_EXP="$expires" OTF_VIEWS="$views" OTF_PASS="$passflag" \
+    node -e 'let s="";process.stdin.setEncoding("utf8");process.stdin.on("data",d=>{s+=d});process.stdin.on("end",()=>{const e=process.env,i=s.indexOf("\n"),j=s.indexOf("\n",i+1);process.stdout.write(JSON.stringify({ok:true,url:s.slice(0,i),kind:e.OTF_KIND,path:s.slice(i+1,j),bytes:Number(e.OTF_BYTES)||0,expires:e.OTF_EXP,views:Number(e.OTF_VIEWS),passphrase:e.OTF_PASS==="1",receipt:s.slice(j+1)})+"\n")})'
   else
     local p="无"; [ -n "$pass" ] && p="有"
     echo "OK 一次性链接已生成（阅后即焚）"
@@ -165,7 +170,7 @@ cmd_read(){
   set --
   if [ -n "$host" ]; then set -- --host "$host"; fi
 
-  local errf out="" err="" rc=0 istext=0 created_dir=""
+  local errf out="" err="" rc=0 istext=0 created_dir="" reported=""
   errf=$(mktemp "${TMPDIR:-/tmp}/otf-err.XXXXXXXX" 2>/dev/null) || errf="${TMPDIR:-/tmp}/.otf_err_$$"
   case "$link" in *"/v/"*) istext=1;; esac
   if [ "$istext" = 1 ] && [ -n "$outpath$pass" ]; then echo "otf: 文本链接不支持 --out / --passphrase，已忽略" >&2; fi
@@ -198,12 +203,18 @@ cmd_read(){
     fi
     if [ "$rc" -ne 0 ]; then cat "$errf" >&2; rm -f "$errf"; EXIT_CODE=3; if [ -n "$created_dir" ]; then rm -rf -- "$created_dir" 2>/dev/null; fi; die "读取失败"; fi
     err=$(cat "$errf" 2>/dev/null); rm -f "$errf"
-    if [ -n "$outpath" ] && [ ! -f "$(to_posix "$outpath")" ]; then
-      if [ -n "$created_dir" ]; then rm -rf -- "$created_dir" 2>/dev/null; fi
-      EXIT_CODE=3; die "1time 报成功但文件不存在: $outpath"
+    if [ -n "$outpath" ]; then
+      if [ ! -f "$(to_posix "$outpath")" ]; then
+        if [ -n "$created_dir" ]; then rm -rf -- "$created_dir" 2>/dev/null; fi
+        EXIT_CODE=3; die "1time 报成功但文件不存在: $outpath"
+      fi
+    else
+      reported=$(printf '%s' "$out" | tr -d '\r' | tail -n1)
+      if [ -z "$reported" ]; then EXIT_CODE=3; die "1time 报成功但没报出保存路径（未给 --out，无法确认落盘）"; fi
+      if [ ! -f "$(to_posix "$reported")" ]; then EXIT_CODE=3; die "1time 报成功但文件不存在: $reported"; fi
     fi
     if [ "$json" = 1 ]; then
-      OTF_OUT="${outpath:-$(printf '%s' "$out" | tr -d '\r' | tail -n1)}" RECEIPT="$err" node -e 'const e=process.env;process.stdout.write(JSON.stringify({ok:true,kind:"file",out:e.OTF_OUT,receipt:e.RECEIPT})+"\n")'
+      printf '%s' "${outpath:-$(printf '%s' "$out" | tr -d '\r' | tail -n1)}" | RECEIPT="$err" node -e 'let s="";process.stdin.on("data",d=>{s+=d});process.stdin.on("end",()=>{process.stdout.write(JSON.stringify({ok:true,kind:"file",out:s,receipt:process.env.RECEIPT})+"\n")})'
     else
       echo "OK 已解密下载"
       if [ -n "$outpath" ]; then echo "保存到: $outpath"; elif [ -n "$out" ]; then echo "$(printf '%s' "$out" | tr -d '\r' | tail -n1)"; fi
