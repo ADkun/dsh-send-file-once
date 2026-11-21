@@ -88,7 +88,7 @@ cmd_send(){
   [ -n "$file" ] && [ "$have_text" = 1 ] && die "--file 与 --text 只能二选一"
   [ "$have_text" = 1 ] && [ -n "$pass" ] && die "--text 不支持 --passphrase：文本接口没有口令参数，极敏文本请先加密成文件再发"
   case "$maxmb" in ''|*[!0-9]*) die "--max-mb 需为正整数（MiB）: $maxmb";; esac
-  maxmb=$(( 10#$maxmb )); [ "$maxmb" -ge 1 ] || die "--max-mb 需为正整数（MiB）: $maxmb"
+  maxmb=$(( 10#$maxmb )); [ "$maxmb" -ge 1 ] && [ "$maxmb" -le 10240 ] || die "--max-mb 需为 1–10240 的整数（MiB）: $maxmb"
   case "$views" in ''|*[!0-9]*) die "--views 需为 1–10 的整数: $views";; esac
   views=$(( 10#$views )); [ "$views" -ge 1 ] && [ "$views" -le 10 ] || die "--views 需为 1–10 的整数: $views"
   check_expires "$expires"
@@ -127,13 +127,13 @@ cmd_send(){
   fi
 
   local url
-  url=$(printf '%s' "$out" | tr -d '\r' | awk 'NF{print $NF}' | tail -n1)
-  case "$url" in http://*|https://*) : ;; *) die "未能解析出链接，原始输出: $out" ;; esac
+  url=$(printf '%s' "$out" | tr -d '\r' | grep -oE 'https?://[^[:space:]]+' | tail -n1)
+  if [ -z "$url" ]; then EXIT_CODE=3; die "未能解析出链接：1time 报成功但输出里没有 URL（重试一次，仍失败先 doctor）"; fi
 
   if [ "$json" = 1 ]; then
     local passflag=0; [ -n "$pass" ] && passflag=1
-    OTF_URL="$url" OTF_KIND="$kind" OTF_PATH="$display" OTF_BYTES="$bytes" OTF_EXP="$expires" OTF_VIEWS="$views" OTF_PASS="$passflag" \
-    node -e 'const e=process.env;process.stdout.write(JSON.stringify({ok:true,url:e.OTF_URL,kind:e.OTF_KIND,path:e.OTF_PATH,bytes:Number(e.OTF_BYTES)||0,expires:e.OTF_EXP,views:Number(e.OTF_VIEWS),passphrase:e.OTF_PASS==="1"})+"\n")'
+    OTF_URL="$url" OTF_KIND="$kind" OTF_PATH="$display" OTF_BYTES="$bytes" OTF_EXP="$expires" OTF_VIEWS="$views" OTF_PASS="$passflag" OTF_RECEIPT="$err" \
+    node -e 'const e=process.env;process.stdout.write(JSON.stringify({ok:true,url:e.OTF_URL,kind:e.OTF_KIND,path:e.OTF_PATH,bytes:Number(e.OTF_BYTES)||0,expires:e.OTF_EXP,views:Number(e.OTF_VIEWS),passphrase:e.OTF_PASS==="1",receipt:e.OTF_RECEIPT})+"\n")'
   else
     local p="无"; [ -n "$pass" ] && p="有"
     echo "OK 一次性链接已生成（阅后即焚）"
@@ -141,7 +141,7 @@ cmd_send(){
     echo "类型: $kind  $display"
     echo "有效期: $expires   可用次数: $views   口令: $p"
     echo "!! 链接 # 之后即解密钥匙，链接本身=钥匙；到期或次数用尽即自动作废，请只发给目标接收人。"
-    if [ -n "$err" ]; then echo "回执: $err"; fi
+    if [ -n "$err" ]; then echo "回执: $err" >&2; fi
   fi
 }
 
@@ -162,7 +162,7 @@ cmd_read(){
   set --
   if [ -n "$host" ]; then set -- --host "$host"; fi
 
-  local errf out="" err="" rc=0 istext=0
+  local errf out="" err="" rc=0 istext=0 created_dir=""
   errf=$(mktemp "${TMPDIR:-/tmp}/otf-err.XXXXXXXX" 2>/dev/null) || errf="${TMPDIR:-/tmp}/.otf_err_$$"
   case "$link" in *"/v/"*) istext=1;; esac
   if [ "$istext" = 1 ] && [ -n "$outpath$pass" ]; then echo "otf: 文本链接不支持 --out / --passphrase，已忽略" >&2; fi
@@ -179,7 +179,13 @@ cmd_read(){
     fi
   else
     if [ -n "$outpath" ]; then
-      mkdir -p "$(dirname "$(to_posix "$outpath")")" 2>/dev/null || true
+      local outdir probe
+      outdir=$(dirname "$(to_posix "$outpath")")
+      if [ -n "$outdir" ] && [ "$outdir" != "." ] && [ "$outdir" != "/" ] && [ ! -d "$outdir" ]; then
+        probe="$outdir"
+        while [ -n "$probe" ] && [ "$probe" != "/" ] && [ "$probe" != "." ] && [ ! -d "$probe" ]; do created_dir="$probe"; probe=$(dirname "$probe"); done
+        mkdir -p "$outdir" 2>/dev/null || created_dir=""
+      fi
       set -- "$@" --out "$(to_win "$outpath")"
     fi
     if [ -n "$pass" ]; then
@@ -187,14 +193,13 @@ cmd_read(){
     else
       out=$("$ONETIME" read-file "$@" "$link" 2>"$errf"); rc=$?
     fi
-    if [ "$rc" -ne 0 ]; then cat "$errf" >&2; rm -f "$errf"; EXIT_CODE=3; die "读取失败"; fi
+    if [ "$rc" -ne 0 ]; then cat "$errf" >&2; rm -f "$errf"; EXIT_CODE=3; if [ -n "$created_dir" ]; then rm -rf -- "$created_dir" 2>/dev/null; fi; die "读取失败"; fi
     err=$(cat "$errf" 2>/dev/null); rm -f "$errf"
     if [ "$json" = 1 ]; then
-      OTF_OUT="$outpath" RECEIPT="$err" node -e 'const e=process.env;process.stdout.write(JSON.stringify({ok:true,kind:"file",out:e.OTF_OUT,receipt:e.RECEIPT})+"\n")'
+      OTF_OUT="${outpath:-$(printf '%s' "$out" | tr -d '\r' | tail -n1)}" RECEIPT="$err" node -e 'const e=process.env;process.stdout.write(JSON.stringify({ok:true,kind:"file",out:e.OTF_OUT,receipt:e.RECEIPT})+"\n")'
     else
       echo "OK 已解密下载"
-      [ -n "$outpath" ] && echo "保存到: $outpath"
-      [ -n "$out" ] && echo "$out"
+      if [ -n "$outpath" ]; then echo "保存到: $outpath"; elif [ -n "$out" ]; then echo "$(printf '%s' "$out" | tr -d '\r' | tail -n1)"; fi
       if [ -n "$err" ]; then echo "$err" >&2; fi
     fi
   fi
@@ -205,6 +210,6 @@ case "$sub" in
   send)   cmd_send "$@";;
   read)   cmd_read "$@";;
   doctor) cmd_doctor;;
-  -h|--help|help|"") usage;;
+  -h|--help|help) usage; exit 0;;
   *) usage; exit 2;;
 esac

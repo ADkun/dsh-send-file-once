@@ -26,11 +26,11 @@
 | 4 / 未找到 1time | 未安装或不在 PATH | npm install -g @1time/cli，再 doctor |
 | 2 / 文件不存在 | 路径错 | 核对路径（含空格要加引号） |
 | 2 / 超过上限 | 文件 >250MiB | 分卷 / 压缩 / 换方案，并告知用户 |
-| 2 / 未能解析出链接 | 网络异常或被限流 | 稍后重试，检查网络与限流 |
+| 3 / 未能解析出链接 | 1time 报成功但输出里没有 URL（代理改写输出、非官方 build） | 重试一次；仍失败先 doctor，别连刷 |
 | 3 / 上传失败 | 网络、限流、服务端拒绝 | 读 stderr 原文；限流则降频；仍失败改期再试 |
 | 3 / 读取失败 | 链接过期 / 次数用尽 / 口令错 | 向发送方确认；口令链接须带正确口令 |
 | 3 / 读取失败：Output file already exists | `--out` 指向已存在的文件 | 换一个新路径；确需覆盖先自行移走旧文件 |
-| 读回提示 consumed | 该链接已被使用 | 正常「阅后即焚」行为；需重新生成 |
+| 首读回执 `This link is now consumed and has been deleted from the server.`；再读 `This file has already been downloaded or has expired.` | 链接已被用掉（或已到期） | 正常「阅后即焚」行为；要再发就重新生成链接 |
 
 ## 四、安全模型（必读）
 - 端到端加密：内容在本地加密后才上传，服务器只见密文与读令牌的 SHA-256 哈希，读不到明文。
