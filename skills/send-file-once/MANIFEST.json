@@ -1,10 +1,11 @@
 {
   "name": "send-file-once",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "created": "2026-02-07",
   "changelog": {
-    "1.1.0": "发送改为后台任务执行（非交互，结束后读回输出取链接）；更正 --text/--passphrase 的 argv 留痕表述；脚本补参数缺值/二选一/--max-mb 校验与 mktemp 临时文件",
+    "1.1.2": "收紧 --expires 校验至与 1time 同一正则（此前 10、1dh 会漏到服务端才失败）；无 --file/--text 时在建临时文件之前就报错，且报 2 而非缺 1time 的 4；read 缺链接同样先报参数错；文本链接忽略 --out/--passphrase 时在 stderr 出声；README 的单文件大小口径与 SKILL/operations 对齐",
     "1.1.1": "修成功路径误报退出码 1；--text 配口令改为报错（原会静默丢弃口令却报“口令: 有”）；--views/--expires 本地校验；临时文件不再残留；自证与 --out 语义按实测更正",
+    "1.1.0": "发送改为后台任务执行（非交互，结束后读回输出取链接）；更正 --text/--passphrase 的 argv 留痕表述；脚本补参数缺值/二选一/--max-mb 校验与 mktemp 临时文件",
     "1.0.0": "初版：封装 1time CLI 的一次性文件/文本快传执行器（send/read/doctor，含口令、限次、限时）"
   },
   "source": "local: D:/dsh/plugins/dsh-send-file-once",
@@ -16,8 +17,8 @@
       "lines": 21
     },
     "references/cli-reference.md": {
-      "sha256": "cba762489a111dafd5e2b50a5feac974584d01717c12de6258f77de6aa62fc94",
-      "bytes": 3084,
+      "sha256": "6e2cfc9cbc936e1374f19c90f4fc5cc51ae8322445c29888ad5a9dbe6e56db4a",
+      "bytes": 3190,
       "lines": 47
     },
     "references/operations.md": {
@@ -26,9 +27,9 @@
       "lines": 40
     },
     "scripts/otf.sh": {
-      "sha256": "c45f43a4e906bb1f2df10feb5e188dc390b3f89cdc2f1c446c487838451cfd7a",
-      "bytes": 9565,
-      "lines": 212
+      "sha256": "1909e53133656127fbb52b77e12550ec363276908c23c1e021edd8037e2c149a",
+      "bytes": 9584,
+      "lines": 210
     },
     "SKILL.md": {
       "sha256": "ad7930cab41cccfc72f208476b9fc6043814700036adf8397cf11f40f09647fb",

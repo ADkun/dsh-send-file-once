@@ -35,12 +35,10 @@ EOF
 die(){ echo "otf: $*" >&2; exit "$EXIT_CODE"; }
 need_val(){ [ $# -ge 2 ] && [ -n "$2" ] || die "$1 缺少取值"; }
 check_expires(){
-  case "$1" in *[!0-9dh]*) die "--expires 形如 1h / 2d / 2d23h: $1";; esac
-  local d=0 h=0 t
-  case "$1" in *d*) d="${1%%d*}"; h="${1#*d}"; h="${h%h}";; *) h="${1%h}";; esac
-  [ -n "$d" ] || d=0; [ -n "$h" ] || h=0
-  case "$d$h" in *[!0-9]*) die "--expires 形如 1h / 2d / 2d23h: $1";; esac
-  t=$(( 10#$d * 24 + 10#$h ))
+  local d h t
+  [[ "$1" =~ ^([0-9]+d)?([0-9]+h)?$ ]] && [ -n "$1" ] || die "--expires 形如 1h / 2d / 2d23h: $1"
+  d="${BASH_REMATCH[1]%d}"; h="${BASH_REMATCH[2]%h}"
+  t=$(( 10#${d:-0} * 24 + 10#${h:-0} ))
   [ "$t" -ge 1 ] && [ "$t" -le 720 ] || die "--expires 超出 1h–30d: $1"
 }
 to_win(){ if command -v cygpath >/dev/null 2>&1; then cygpath -w -- "$1"; else printf '%s' "$1"; fi; }
@@ -86,6 +84,7 @@ cmd_send(){
     -h|--help)            usage; exit 0;;
     *) die "未知参数: $1";;
   esac; done
+  [ -n "$file" ] || [ "$have_text" = 1 ] || die "需要 --file <路径> 或 --text <内容>"
   [ -n "$file" ] && [ "$have_text" = 1 ] && die "--file 与 --text 只能二选一"
   [ "$have_text" = 1 ] && [ -n "$pass" ] && die "--text 不支持 --passphrase：文本接口没有口令参数，极敏文本请先加密成文件再发"
   case "$maxmb" in ''|*[!0-9]*) die "--max-mb 需为正整数（MiB）: $maxmb";; esac
@@ -118,15 +117,13 @@ cmd_send(){
     fi
     if [ "$rc" -ne 0 ]; then cat "$errf" >&2; rm -f "$errf"; EXIT_CODE=3; die "上传失败"; fi
     err=$(cat "$errf" 2>/dev/null); rm -f "$errf"
-  elif [ "$have_text" = 1 ]; then
+  else
     local chars
     chars=$(printf '%s' "$text" | wc -c | tr -d ' ')
     kind="text"; display="机密文本($chars 字节)"; bytes=0
     out=$(printf '%s' "$text" | "$ONETIME" send "$@" 2>"$errf"); rc=$?
     if [ "$rc" -ne 0 ]; then cat "$errf" >&2; rm -f "$errf"; EXIT_CODE=3; die "上传失败"; fi
     err=$(cat "$errf" 2>/dev/null); rm -f "$errf"
-  else
-    die "需要 --file <路径> 或 --text <内容>"
   fi
 
   local url
@@ -159,8 +156,8 @@ cmd_read(){
     http://*|https://*)   link="$1"; shift;;
     *) die "未知参数: $1";;
   esac; done
-  need_1time
   [ -n "$link" ] || die "缺少一次性链接"
+  need_1time
 
   set --
   if [ -n "$host" ]; then set -- --host "$host"; fi
@@ -168,6 +165,7 @@ cmd_read(){
   local errf out="" err="" rc=0 istext=0
   errf=$(mktemp "${TMPDIR:-/tmp}/otf-err.XXXXXXXX" 2>/dev/null) || errf="${TMPDIR:-/tmp}/.otf_err_$$"
   case "$link" in *"/v/"*) istext=1;; esac
+  if [ "$istext" = 1 ] && [ -n "$outpath$pass" ]; then echo "otf: 文本链接不支持 --out / --passphrase，已忽略" >&2; fi
 
   if [ "$istext" = 1 ]; then
     out=$("$ONETIME" read "$@" "$link" 2>"$errf"); rc=$?

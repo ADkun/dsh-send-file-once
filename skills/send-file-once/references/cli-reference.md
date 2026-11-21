@@ -26,7 +26,7 @@
 ## 关键行为
 - send / send-file 的**链接只打到 stdout**；read / read-file 的「剩余次数 / 已销毁」回执打到 stderr，所以 stdout 始终可管道。
 - read-file 不给 --out 时，存到**当前目录、用原文件名**，重名自动加 ` (1)`（本技能建议总是显式 --out，便于定位）。
-- 文本链接形如 `https://1time.io/v/#...`；文件链接形如 `https://1time.io/f/#...`（本技能按 /f/ 与 /v/ 区分）。
+- 文本链接形如 `https://1time.io/v/#...`；文件链接形如 `https://1time.io/f/#...`（本技能按 /f/ 与 /v/ 区分）。文本链接只回 stdout，`--out` / `--passphrase` 对它无效（会被忽略并在 stderr 提示）。
 - 口令也可用环境变量 `1TIME_PASSPHRASE` 传入；本技能即用此法，使 1time 的 argv 里没有口令（`--passphrase` 会触发 1time 的 argv 泄露告警）。
 
 ## 本技能封装（scripts/otf.sh）相对原始 CLI 的增益
