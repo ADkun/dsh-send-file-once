@@ -1,8 +1,9 @@
 {
   "name": "send-file-once",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "created": "2026-02-07",
   "changelog": {
+    "1.1.6": "链接解析对 /f|/v 形态也要求候选唯一（此前多条时静默取第一条、交付错链），scheme 大小写不敏感；doctor 在 node 缺失时同样返回 4（此前仍 rc=0）；install.ps1 拷完按 MANIFEST 逐文件核对 sha256 并提示清单外文件；文档更正三处：1time 自身也会拒绝越界参数（`Invalid views value \"11\"…`，1.1.5 把这条正确说法改错了，现改回）、--text 经 stdin 后 1time 侧不再告警（调用侧 argv 痕仍在）、尾随换行是读回时 `$( )` 捕获裁掉的且发送侧原样（NUL 则根本传不了）；补 --text 时 path 为描述串、bytes 为 0",
     "1.1.5": "read --json 的 out 与 send --json 的 path 也改走 stdin（此前经 OTF_* 环境变量，绝对 POSIX 路径会被 MSYS 改写成 D:/ 形式）；read 不给 --out 时同样核对 1time 报出的路径确实落盘，没报出路径或文件不存在按 3 退出（此前静默 rc=0）；通用 URL 回退要求候选唯一，多条时按 3 拒绝交付；--max-mb 先剥前导零再判长，000001 / 010240 不再被误拒；文档：--text 尾随换行被裁与 NUL 丢失、--json 下判成功看 ok 判剩余看 receipt、http 回环含 localhost 与 ::1、consumed 回执仅在 --views 1 时出现、「被 1time 本地校验拒绝」更正为 otf.sh 本地拦下、红线改为「可能已传完，也可能传一半断了」、多条 URL 的失败处置",
     "1.1.4": "read --json 的文本内容改走 stdin（此前经环境变量传递，Git Bash/MSYS 会把形似 POSIX 路径的文本改写成 Windows 路径，rc=0 却返回错误内容）；链接解析优先认 /f/#… /v/#… 形态且取第一个、剥掉尾部标点，1time 或代理多打一行含 URL 的提示时不再交付错链接；read 成功后核对文件确实落盘，1time 谎报成功按 3 退出并回滚新建目录；--max-mb 超长值报错回显原串（不再回显整数回绕后的数）；文档：补文本链接用完与口令错的 stderr 原文、--json 只在成功态、路径字段原样语义、doctor 输出形态不再要求字面匹配、红线改为如实描述「没读到链接」的后果",
     "1.1.3": "链接解析只认 URL：1time 多打一行提示不再被误判成失败，解析失败归 3 而非 2，且不再把含链接的原始输出回显进 stderr；无子命令退出码改 2；send 回执与 read 一致走 stderr，send --json 补 receipt；read --json 不给 --out 时 out 回落到 1time 报的路径；read --out 失败回滚本次新建的目录；--max-mb 上限 10240 防整数溢出；文档同步：退出码表、consumed 原文、后台任务的 harness 形态与「禁止前台同步等待」红线、大小上限只认脚本上限",
@@ -20,19 +21,19 @@
       "lines": 22
     },
     "references/cli-reference.md": {
-      "sha256": "47c5743da8afea66433faa8d8848ee2f326991fbe83c1e7a48001da5447a44c2",
-      "bytes": 4430,
+      "sha256": "6dc798460b5a37984e6d2fa3026e3177f61780e7ef7a0a9dcd610246e7bca181",
+      "bytes": 4755,
       "lines": 48
     },
     "references/operations.md": {
-      "sha256": "f4e57cf93c0844e0d2468fbdc1993d7549bb2a367f7a1ef95b42a790aa106b82",
-      "bytes": 3734,
+      "sha256": "16cb88329a8a11b88bb0c8aa85e9c70fee0982942c47cb67dd992269c486325e",
+      "bytes": 3933,
       "lines": 42
     },
     "scripts/otf.sh": {
-      "sha256": "51e9085c7aa189b6b06ee0957de1a12a1d8e40cc8ae7d1177cf995c5ddff79d8",
-      "bytes": 11665,
-      "lines": 233
+      "sha256": "a8eb8ce8f9a95500631e8057c338dbed1f883eddb634d4389aa76451aa070bf6",
+      "bytes": 11854,
+      "lines": 240
     },
     "SKILL.md": {
       "sha256": "d89030256f2c07a3b0c6b432986b32f088d3e9af8769a16f15c49f696e2865a5",

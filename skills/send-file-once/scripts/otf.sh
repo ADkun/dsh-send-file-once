@@ -59,15 +59,18 @@ find_1time(){
 need_1time(){ find_1time || { EXIT_CODE=4; die "未找到 1time CLI。请先执行: npm install -g @1time/cli （需 Node >=20）"; }; }
 
 cmd_doctor(){
-  echo "node   : $(node -v 2>/dev/null || echo '缺失（需 >=20）')"
+  local nodev rc=0
+  nodev=$(node -v 2>/dev/null || true)
+  if [ -n "$nodev" ]; then echo "node   : $nodev"; else echo "node   : 缺失（需 >=20）"; rc=4; fi
   if find_1time; then
     echo "1time  : 可用 ($ONETIME)"
     echo "--- 1time 版本/用法 ---"
     "$ONETIME" --help 2>&1 | sed -n '1,4p'
   else
     echo "1time  : 缺失 -> npm install -g @1time/cli (Node >=20)"
-    return 4
+    rc=4
   fi
+  return $rc
 }
 
 cmd_send(){
@@ -130,9 +133,13 @@ cmd_send(){
   fi
 
   local url
-  url=$(printf '%s' "$out" | tr -d '\r' | grep -oE 'https?://[^[:space:]]+/[fv]/#[A-Za-z0-9_=-]+' | head -n1)
-  if [ -z "$url" ]; then
-    cands=$(printf '%s' "$out" | tr -d '\r' | grep -oE 'https?://[^[:space:]]+' || true)
+  url=""
+  cands=$(printf '%s' "$out" | tr -d '\r' | grep -oiE 'https?://[^[:space:]]+/[fv]/#[A-Za-z0-9_=-]+' || true)
+  ncand=$(printf '%s\n' "$cands" | grep -c . || true)
+  if [ "$ncand" = 1 ]; then
+    url="$cands"
+  else
+    cands=$(printf '%s' "$out" | tr -d '\r' | grep -oiE 'https?://[^[:space:]]+' || true)
     ncand=$(printf '%s\n' "$cands" | grep -c . || true)
     [ "$ncand" = 1 ] && url="$cands"
   fi
