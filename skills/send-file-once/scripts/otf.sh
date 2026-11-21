@@ -132,18 +132,28 @@ cmd_send(){
     err=$(cat "$errf" 2>/dev/null); rm -f "$errf"
   fi
 
-  local url
-  url=""
-  cands=$(printf '%s' "$out" | tr -d '\r' | grep -oiE 'https?://[^[:space:]]+/[fv]/#[A-Za-z0-9_=-]+' || true)
+  local url="" shape="" origin=""
+  shape="v"; [ "$kind" = file ] && shape="f"
+  # 本次发送的形态只可能是一种：文件→/f/，文本→/v/。先按形态取并去重，再判唯一（同一链接重复出现不算多条）。
+  cands=$(printf '%s' "$out" | tr -d '\r' | grep -oiE "https?://[^[:space:]]+/$shape/#[A-Za-z0-9_=-]+" | sort -u || true)
   ncand=$(printf '%s\n' "$cands" | grep -c . || true)
+  if [ "$ncand" -ne 1 ]; then
+    # 形态不符或确实出现多条：放宽到任意 /f|/v 形态，仍要求唯一
+    cands=$(printf '%s' "$out" | tr -d '\r' | grep -oiE 'https?://[^[:space:]]+/[fv]/#[A-Za-z0-9_=-]+' | sort -u || true)
+    ncand=$(printf '%s\n' "$cands" | grep -c . || true)
+  fi
   if [ "$ncand" = 1 ]; then
     url="$cands"
   else
-    cands=$(printf '%s' "$out" | tr -d '\r' | grep -oiE 'https?://[^[:space:]]+' || true)
+    # 最后一道回退：任意 URL，但必须与本次指向的站点同源且带 # 令牌——免得把帮助/文档链接当交付物
+    origin="${host:-https://1time.io}"; origin="${origin%/}"
+    cands=$(printf '%s' "$out" | tr -d '\r' | grep -oiE 'https?://[^[:space:]]+' | sort -u || true)
     ncand=$(printf '%s\n' "$cands" | grep -c . || true)
-    [ "$ncand" = 1 ] && url="$cands"
+    if [ "$ncand" = 1 ]; then
+      case "${cands,,}" in "${origin,,}"/*) case "$cands" in *'#'*) url="$cands";; esac;; esac
+    fi
   fi
-  if [ -z "$url" ]; then EXIT_CODE=3; die "未能解析出唯一链接：1time 报成功但输出里没有 /f/# 或 /v/# 形态的链接，或有多条 URL（重试一次，仍失败先 doctor）"; fi
+  if [ -z "$url" ]; then EXIT_CODE=3; die "未能解析出唯一链接：1time 报成功，但输出里没有唯一的 /f/# 或 /v/# 链接，也没有唯一一条与本次站点同源且带 # 令牌的 URL（重试一次，仍失败先 doctor）"; fi
 
   if [ "$json" = 1 ]; then
     local passflag=0; [ -n "$pass" ] && passflag=1
@@ -168,7 +178,7 @@ cmd_read(){
     --host)               need_val "$@"; host="$2"; shift 2;;
     --json)               json=1; shift;;
     -h|--help)            usage; exit 0;;
-    http://*|https://*)   link="$1"; shift;;
+    *) if [[ "$1" =~ ^[Hh][Tt][Tt][Pp][Ss]?:// ]]; then link="$1"; shift; else die "未知参数: $1"; fi;;
     *) die "未知参数: $1";;
   esac; done
   [ -n "$link" ] || die "缺少一次性链接"
@@ -179,7 +189,7 @@ cmd_read(){
 
   local errf out="" err="" rc=0 istext=0 created_dir="" reported=""
   errf=$(mktemp "${TMPDIR:-/tmp}/otf-err.XXXXXXXX" 2>/dev/null) || errf="${TMPDIR:-/tmp}/.otf_err_$$"
-  case "$link" in *"/v/"*) istext=1;; esac
+  case "${link,,}" in *"/v/"*) istext=1;; esac
   if [ "$istext" = 1 ] && [ -n "$outpath$pass" ]; then echo "otf: 文本链接不支持 --out / --passphrase，已忽略" >&2; fi
 
   if [ "$istext" = 1 ]; then

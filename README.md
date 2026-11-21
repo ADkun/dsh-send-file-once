@@ -19,7 +19,7 @@
 ```
 pwsh -File .\install.ps1
 ```
-等价于把 `skills/send-file-once/` 整目录拷到 `~/.dsh/skills/send-file-once`，DSH 启动后自动识别为技能。
+把 `skills/send-file-once/` 拷到 `~/.dsh/skills/send-file-once`，DSH 启动后自动识别为技能。脚本不是盲拷：先装到临时目录、按 `MANIFEST.json` 逐文件核对 sha256，全部一致才整目录替换（失败则原有安装保持原样），旧版残留文件一并清掉。
 
 ## 作为 DSH 技能使用
 装好后无需记命令，直接自然语言即可，例如：
@@ -55,7 +55,7 @@ bash scripts/otf.sh doctor
 | --json | send / read | 关 | 输出单行 JSON |
 
 ### 退出码
-`0` 成功 · `2` 用法/校验错误（无子命令、越界、缺链接）· `3` 上传/下载失败（含 1time 报成功却解析不出链接）· `4` 依赖缺失（未装 1time）
+`0` 成功 · `2` 用法/校验错误（无子命令、越界、缺链接）· `3` 上传/下载失败（含 1time 报成功却解析不出链接）· `4` 依赖缺失（未装 1time 或 node）
 
 ## 安全
 - 链接的 `#` 之后就是解密钥匙，**链接本身即秘密**，只发给目标本人。
